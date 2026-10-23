@@ -63,7 +63,8 @@
       "moveOrganization": "Mover para outra organização",
       "moveOrganizationDescription": "Mova este funcionário de IA para uma organização para que uma equipe possa trabalhar com ele.",
       "delete": "Excluir {{name}}",
-      "noTeam": "Sem grupo"
+      "noTeam": "Sem grupo",
+      "moveOutDescription": "Mova este funcionário de IA para outra organização que você administra, incluindo a Pessoal."
     },
     "people": {
       "helper": "Escolha se toda a sua equipe pode usar este funcionário de IA ou apenas as pessoas que você escolher.",
@@ -316,14 +317,14 @@
     "successBody": "Convide pessoas para trabalharem juntas.",
     "successAction": "Convide sua equipe",
     "paidTitle": "Crie {{name}} como organização paga",
-    "freeTaken": "Cada pessoa tem uma organização grátis, e a sua é {{freeOrg}}.",
-    "freeTakenUnknown": "Cada pessoa tem uma organização grátis, e você já tem a sua.",
+    "freeTaken": "Cada pessoa pode ter uma organização no nível gratuito, e a sua é {{freeOrg}}.",
+    "freeTakenUnknown": "Cada pessoa pode ter uma organização no nível gratuito, e você já tem a sua.",
     "paidPrice": "{{name}} custa {{price}} por membro por mês. Você paga no navegador, e ela é desbloqueada quando o pagamento for confirmado.",
     "paidPriceUnknown": "Você paga por {{name}} no navegador, e ela é desbloqueada quando o pagamento for confirmado.",
     "paidSubmit": "Continuar para o pagamento",
     "paidSuccessTitle": "Conclua o pagamento de \"{{name}}\"",
     "paidSuccessBody": "O pagamento está aberto no navegador. A organização é desbloqueada quando o pagamento for confirmado.",
-    "freeTakenInline": "Você já tem uma organização grátis. Crie esta pelo menu de organizações como organização paga.",
+    "freeTakenInline": "Você já tem uma organização no nível gratuito. Crie esta pelo menu de organizações como organização paga.",
     "paidBlockedBody": "Seu navegador não abriu o pagamento. Abra-o para concluir, e a organização é desbloqueada quando for confirmado."
   },
   "shareViaTeam": {
@@ -384,9 +385,6 @@
         "already_member": "Já está na equipe",
         "generic": "Não foi possível convidar. Tente novamente."
       }
-    },
-    "done": {
-      "heading": "Compartilhado com {{team}}"
     }
   },
   "moveResume": {
@@ -436,7 +434,7 @@
   "billing": {
     "unavailable": "Não foi possível carregar a cobrança desta organização.",
     "status": {
-      "free": "Gratuito",
+      "free": "Nível gratuito",
       "trialing": "Teste grátis",
       "trialingDays_one": "Teste grátis, resta {{count}} dia",
       "trialingDays_other": "Teste grátis, restam {{count}} dias",
@@ -450,10 +448,8 @@
     "seats_other": "{{count}} assentos",
     "manage": "Gerenciar cobrança",
     "askOwner": "Somente o proprietário que paga por esta organização pode mudar o plano. Peça a essa pessoa se precisar de mais.",
-    "trialPill_one": "Resta {{count}} dia de teste",
-    "trialPill_other": "Restam {{count}} dias de teste",
     "loading": "Carregando a cobrança",
-    "planFree": "Plano grátis",
+    "planFree": "Nível gratuito",
     "planPaid": "Plano pago",
     "seatsTotal_one": "{{count}} assento, {{total}} por mês",
     "seatsTotal_other": "{{count}} assentos, {{total}} por mês",
@@ -468,7 +464,7 @@
     "openCheckout": "Abrir o pagamento",
     "openPortal": "Abrir o portal de cobrança",
     "success": "Pagamento recebido. Todos aqui podem continuar.",
-    "usageTitle": "Uso grátis desta semana",
+    "usageTitle": "Uso do nível gratuito nesta semana",
     "usageUsed": "{{percent}}% usado",
     "usageShared": "Todos nesta organização compartilham. É renovado {{time}}.",
     "usageSharedNoTime": "Todos nesta organização compartilham. É renovado ainda nesta semana.",
@@ -476,11 +472,8 @@
     "freeSummary_other": "{{count}} membros compartilham um uso semanal"
   },
   "degrade": {
-    "owner": "O teste da sua equipe terminou. Faça o upgrade para todos continuarem trabalhando.",
-    "member": "O teste da sua equipe terminou. Peça ao proprietário para fazer o upgrade.",
-    "upgrade": "Fazer upgrade",
-    "writeBlockedTitle": "Upgrade necessário",
-    "writeBlockedBody": "O teste da sua equipe terminou. Peça ao proprietário para fazer o upgrade para fazer alterações."
+    "writeBlockedTitle": "Esta organização está bloqueada",
+    "writeBlockedBody": "Ninguém pode fazer alterações aqui até ela ser desbloqueada. Peça ao dono que paga por ela para desbloqueá-la."
   },
   "personalSpace": {
     "inviteBlockedTitle": "Este é o seu espaço pessoal",
@@ -501,8 +494,8 @@
     "joinedBody": "Mude para esse espaço quando quiser pelo menu de espaços, no topo da barra lateral.",
     "joinedBodyUnconfirmed": "Não foi possível atualizar seus espaços agora. Abra o menu de espaços daqui a pouco para encontrar a equipe.",
     "errors": {
-      "needsUpgradeTitle": "Esta equipe precisa de um upgrade",
-      "needsUpgradeBody": "O teste dela terminou, então ela não pode receber pessoas agora. Peça para quem convidou você fazer o upgrade e aceite de novo.",
+      "needsUpgradeTitle": "Esta organização está bloqueada",
+      "needsUpgradeBody": "Ela está bloqueada, então não pode adicionar pessoas por enquanto. Peça a quem convidou você para desbloqueá-la e aceite de novo.",
       "alreadyMemberTitle": "Você já está nesta equipe",
       "alreadyMemberBody": "Não há nada a fazer. Encontre a equipe no menu de espaços, no topo da barra lateral.",
       "goneTitle": "Este convite não está mais disponível",
@@ -694,15 +687,13 @@
   },
   "native": {
     "askOwner": "Somente o proprietário que paga por esta organização pode mudar o plano.",
-    "degradeOwner": "O teste da sua equipe terminou. Gerencie seu plano na web.",
-    "degradeMember": "O teste da sua equipe terminou. O plano da sua equipe não inclui alterações no momento.",
-    "writeBlockedTitle": "Não incluído no plano da sua equipe",
-    "writeBlockedBody": "O teste da sua equipe terminou, então o plano da sua equipe não inclui esta alteração no momento.",
+    "writeBlockedTitle": "Esta organização está bloqueada",
+    "writeBlockedBody": "Ninguém pode fazer alterações aqui por enquanto. Você ainda pode ler tudo.",
     "inviteNeedsUpgradeTitle": "Esta equipe não pode adicionar pessoas no momento",
-    "inviteNeedsUpgradeBody": "O teste dela terminou, então o plano dela não inclui novas pessoas no momento.",
+    "inviteNeedsUpgradeBody": "Ela está bloqueada, então não pode adicionar pessoas por enquanto.",
     "moveNeedsUpgrade": "O plano desta equipe não inclui mover Funcionários de IA para ela no momento.",
-    "freeTakenInline": "Você já tem uma organização grátis, então esta não pode ser criada aqui.",
-    "freeTakenTitle": "Você já tem uma organização grátis",
+    "freeTakenInline": "Você já tem uma organização no nível gratuito, então esta não pode ser criada aqui.",
+    "freeTakenTitle": "Você já tem uma organização no nível gratuito",
     "freeTakenBody": "Esta não pode ser criada aqui."
   },
   "writeFailed": {
@@ -738,5 +729,71 @@
       "title": "Não foi possível atualizar os modelos permitidos",
       "description": "Os modelos voltaram a ser como eram. Tente de novo em instantes."
     }
+  },
+  "status": {
+    "scheduled": "{{org}} será bloqueada em {{date}}. Depois disso, ninguém poderá enviar mensagens lá.",
+    "scheduledCanceled": "O plano de {{org}} termina em {{date}}. Depois disso, ela será bloqueada e ninguém poderá enviar mensagens lá.",
+    "pastDue": "Um pagamento de {{org}} não foi aprovado. Ela será bloqueada em {{date}} se o pagamento não for resolvido.",
+    "pastDueNoDate": "Um pagamento de {{org}} não foi aprovado. Ela será bloqueada se o pagamento não for resolvido.",
+    "locked": "{{org}} está bloqueada, então ninguém pode enviar mensagens nem fazer alterações.",
+    "lockedCanceled": "O plano de {{org}} terminou, então ela está bloqueada e ninguém pode enviar mensagens nem fazer alterações.",
+    "lockedPayment": "Um pagamento de {{org}} não foi aprovado, então ela está bloqueada e ninguém pode enviar mensagens nem fazer alterações.",
+    "lockedMoveOut": "Você ainda pode ler tudo e tirar seus Funcionários de IA de lá.",
+    "lockedRead": "Você ainda pode ler tudo.",
+    "askOwner": {
+      "scheduled": "Peça ao dono que paga por ela para mantê-la ativa.",
+      "pastDue": "Peça ao dono que paga por ela para resolver o pagamento.",
+      "locked": "Peça ao dono que paga por ela para desbloqueá-la."
+    },
+    "waiting": "Aguardando seu pagamento. Isto se atualiza sozinho quando ele for aprovado.",
+    "openPaymentPage": "Abrir a página de pagamento",
+    "actions": {
+      "upgrade": "Fazer upgrade",
+      "unlock": "Desbloquear",
+      "fixPayment": "Resolver pagamento",
+      "manageBilling": "Gerenciar pagamentos",
+      "changePick": "Mudar escolha",
+      "claimFree": "Ir para o nível gratuito",
+      "delete": "Excluir organização",
+      "more": "Mais"
+    },
+    "claim": {
+      "title": "Passar {{org}} para o nível gratuito?",
+      "bodySwap": "{{org}} é desbloqueada e passa para o nível gratuito. {{other}} sai do nível gratuito e fica bloqueada até alguém pagar por ela.",
+      "bodyFree": "{{org}} é desbloqueada e passa para o nível gratuito.",
+      "cancel": "Cancelar",
+      "pending": "Trocando",
+      "done": "{{org}} agora está no nível gratuito.",
+      "refused": {
+        "has_subscription": {
+          "title": "Esta organização ainda tem um plano",
+          "body": "A assinatura dela continua ativa, então ela não pode passar para o nível gratuito. Resolva o pagamento."
+        },
+        "not_billing_owner": {
+          "title": "Só o dono que paga pode fazer isso",
+          "body": "Peça ao proprietário que paga por esta organização para passá-la para o nível gratuito."
+        }
+      }
+    },
+    "lockedCard": {
+      "title": "Esta organização está bloqueada"
+    },
+    "writeLocked": {
+      "unlock": "{{org}} está bloqueada. Desbloqueie para enviar mensagens e fazer alterações.",
+      "fixPayment": "{{org}} está bloqueada. Resolva o pagamento para enviar mensagens e fazer alterações.",
+      "askOwner": "{{org}} está bloqueada. Peça ao dono que paga por ela para desbloqueá-la.",
+      "store": "{{org}} está bloqueada, então mensagens e alterações estão pausadas por enquanto."
+    }
+  },
+  "moveOut": {
+    "title": "Mover {{name}} para outra organização",
+    "personal": "Pessoal",
+    "pick": {
+      "subtitle": "Escolha a organização para onde este funcionário de IA vai. Ele mantém suas conversas e arquivos.",
+      "empty": "Você não administra outra organização para onde ele possa ir."
+    },
+    "confirmPersonal": "{{agent}} vai para {{team}}, onde só você trabalha com ele.",
+    "done": "{{agent}} agora está em {{team}}.",
+    "close": "Pronto"
   }
 }

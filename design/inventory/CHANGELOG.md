@@ -3,6 +3,44 @@
 Every `version` bump in `inventory.yaml` needs a matching entry here (enforced by
 `pnpm check:parity`). Newest first. Use `## vN` headings.
 
+## v140 - 2026-10-22
+
+The pricing-change modal splits its intro into short pages with progress
+dots for an owner who has to pick: what changes (one free organization,
+free for everyone in it; the rest at the seat price per member a month, or
+for a payer that the subscription covers one organization), then "Nothing
+gets deleted" for the organizations not kept free. Maybe later sits on the
+first page only and Back on every later one. A payer now picks the
+organization the subscription covers first ("Use it for {org}"), then the
+free one, where the subscription's organization stays listed but disabled;
+the grace price line is gone and nothing in the modal asks to pay. The
+Settings picker and the post-cutover Change use the same order.
+
+## v139 - 2026-10-21
+
+After the cutover, an owner of several organizations whose organizations
+the cutover chose for them sees the pricing-change modal once more: "We
+kept Personal free and moved your subscription to Acme", the day the
+change window closes, and every organization they own with members, recent
+activity and what it is now (Free, Your subscription, Locks November 6).
+Confirm keeps it and hides it on every device; Change opens the picker in
+the same frame, whose success step now reads as today. An owner who picked
+before the cutover gets one note that the pick is in place. A new status
+strip (`org-status-banner`) tops every organization that is locked, past
+due or about to lock: the billing owner gets Unlock or Fix payment, Change
+pick while the window is open, Use as free org with a confirmation naming
+the organization that locks instead, and Delete org; everyone else is told
+to ask the owner. On a locked organization the composer becomes a locked
+card (`org-locked-composer`), and creating employees or tasks, editing
+files, instructions and settings, and inviting people turn off with the
+same reason, as do skills, new API keys, new channel connections and the
+morning briefing, while reading, downloading, removing people and moving
+agents out stay open. An owner or admin moves an employee out from its
+settings (Move to another organization) to any working organization they
+run, Personal included. A pick saved after the cutover, from the modal or
+Settings, settles the announcement everywhere, and an organization paying on
+its own subscription reads Paid in the picker's success step.
+
 ## v138 - 2026-10-21
 
 Billing moves from the person to the organization. Every cloud

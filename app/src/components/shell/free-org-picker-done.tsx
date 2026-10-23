@@ -1,53 +1,61 @@
 import {
   type ChoiceDone,
-  type ChoiceOrgStatus,
+  type FlowProgress,
   formatCutoverDate,
+  formatCutoverDay,
 } from "@houston/sdk";
-import { cn, DialogDescription, DialogTitle } from "@houston-ai/core";
+import { DialogDescription, DialogTitle } from "@houston-ai/core";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useOrgName } from "./free-org-picker-rows";
-import { OrgAvatar } from "./org-avatar";
+import { ChoiceOrgList } from "./free-org-picker-list";
+import { PickerProgress, useOrgName } from "./free-org-picker-rows";
 import { PlanBriefingCta } from "./plan-briefing-cta";
 
-const STATUS = {
-  free: {
-    label: "choice.done.status.free",
-    className: "bg-success/12 text-success-ink",
-  },
-  subscription: {
-    label: "choice.done.status.subscription",
-    className: "bg-chip-solid text-ink",
-  },
-  needs_plan: {
-    label: "choice.done.status.needs_plan",
-    className:
-      "text-ink-muted outline outline-1 -outline-offset-1 outline-line",
-  },
-} as const satisfies Record<
-  ChoiceOrgStatus,
-  { label: `choice.done.status.${ChoiceOrgStatus}`; className: string }
->;
-
 /**
- * The picker's last step once a pick is stored, in the same frame: what each
- * org the person owns becomes at the cutover. The SDK decides when it shows
- * and each org's status ({@link ChoiceDone}); Done, the X, Escape and a click
- * outside all close it.
+ * What a stored pick means, in the same frame: the picker's last step, and
+ * the note an owner who picked before the cutover reads once it applied. The
+ * SDK decides when it shows and each org's status ({@link ChoiceDone}).
+ * Before the cutover it reads as what each org becomes then; once applied, as
+ * what each org is now, with each org's members and activity. The action, the
+ * X, Escape and a click outside all close it.
  */
 export function DoneStep({
   done,
   onClose,
+  until,
+  closeLabel,
+  progress = null,
 }: {
   done: ChoiceDone;
   onClose: () => void;
+  /** The last dot of the flow that led here, if it shows progress. */
+  progress?: FlowProgress | null;
+  /**
+   * The last day the pick may change, formatted, or null once it can't.
+   * Defaults to the window the stored pick answered with.
+   */
+  until?: string | null;
+  closeLabel?: string;
 }) {
   const { t, i18n } = useTranslation("plan");
   const orgName = useOrgName();
   // Formatted on render, so an open step follows a language change.
-  const date = formatCutoverDate(done.cutoverAt, i18n.language);
+  const lastDay =
+    until !== undefined
+      ? until
+      : done.changeableUntil &&
+        formatCutoverDay(done.changeableUntil, i18n.language);
+  const hints = done.applied
+    ? [
+        lastDay ? t("choice.applied.until", { date: lastDay }) : null,
+        done.orgs.some((org) => org.status === "locks")
+          ? t("choice.applied.locks")
+          : null,
+      ]
+    : [t("choice.done.change")];
   return (
     <>
+      <PickerProgress progress={progress} />
       <span
         aria-hidden
         className="plan-briefing-badge mb-5 grid size-13 place-items-center rounded-full bg-success/15 text-success-ink"
@@ -58,38 +66,29 @@ export function DoneStep({
         tabIndex={-1}
         className="mb-2 pr-8 text-balance text-2xl font-semibold leading-tight tracking-tight text-ink outline-none"
       >
-        {t("choice.done.title", { name: orgName(done.free) })}
+        {done.applied
+          ? t("choice.applied.title", { name: orgName(done.free) })
+          : t("choice.done.title", { name: orgName(done.free) })}
       </DialogTitle>
       <DialogDescription className="mb-5 text-base leading-normal text-ink-muted">
-        {t("choice.done.sub", { date })}
+        {!done.applied
+          ? t("choice.done.sub", {
+              date: formatCutoverDate(done.cutoverAt, i18n.language),
+            })
+          : done.paid
+            ? t("choice.applied.paid", { name: orgName(done.paid) })
+            : t("choice.applied.now")}
       </DialogDescription>
-      <ul className="plan-briefing-stagger ht-hairline mb-3 divide-y divide-line rounded-xl bg-chip px-3.5 py-1">
-        {done.orgs.map(({ org, status }) => (
-          <li
-            key={org.slug}
-            className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-2.5"
-          >
-            <OrgAvatar slug={org.slug} name={orgName(org)} size="sm" />
-            <span className="truncate text-sm font-medium text-ink">
-              {orgName(org)}
-            </span>
-            <span
-              className={cn(
-                "whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium",
-                STATUS[status].className,
-              )}
-            >
-              {t(STATUS[status].label)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="mb-6 text-[13px] text-ink-muted">
-        {t("choice.done.change")}
-      </p>
+      <ChoiceOrgList orgs={done.orgs} meta={done.applied} />
+      <div className="mb-6 flex flex-col gap-1 text-[13px] text-ink-muted">
+        {hints.map((hint) => hint && <p key={hint}>{hint}</p>)}
+      </div>
       {/* The phone sheet seats the action at the bottom, under the thumb. */}
       <div className="mt-auto flex flex-col md:mt-0">
-        <PlanBriefingCta label={t("choice.done.close")} onClick={onClose} />
+        <PlanBriefingCta
+          label={closeLabel ?? t("choice.done.close")}
+          onClick={onClose}
+        />
       </div>
     </>
   );

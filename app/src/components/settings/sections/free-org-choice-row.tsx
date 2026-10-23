@@ -4,6 +4,7 @@ import {
   formatCutoverDate,
   formatCutoverDay,
   openChoicePicker,
+  settleChoicePick,
 } from "@houston/sdk";
 import { Button, Card } from "@houston-ai/core";
 import { type RefObject, useRef, useState } from "react";
@@ -28,12 +29,23 @@ export function FreeOrgChoiceRow({
   const { t, i18n } = useTranslation("plan");
   const { data: choice } = useBillingChoice();
   const orgName = useOrgName();
-  const [frame, setFrame] = useState(CLOSED_CHOICE_PICKER);
+  const [stored, setFrame] = useState(CLOSED_CHOICE_PICKER);
+  // Derived from the last render's frame; React re-renders before painting.
+  const frame = choice ? settleChoicePick(stored, choice) : stored;
+  if (frame !== stored) setFrame(frame);
   const opener = useRef<HTMLButtonElement>(null);
   const now = useChoiceNow(choice);
   const entry = choicePickerEntry(choice, now, frame);
   if (!choice || entry === "none") return null;
   const free = choice.orgs.find((org) => org.slug === choice.freeOrgSlug);
+  // After the cutover the row changes the pick it applied, inside the window.
+  const applied =
+    choice.state === "applied" && free && choice.changeableUntil
+      ? {
+          name: orgName(free),
+          date: formatCutoverDay(choice.changeableUntil, i18n.language),
+        }
+      : null;
   // The picker keeps its slot whether or not the row shows, so it never remounts.
   return (
     <>
@@ -42,17 +54,24 @@ export function FreeOrgChoiceRow({
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <h2 className="text-lg font-medium">
-                {t("choice.settings.title")}
+                {applied
+                  ? t("choice.settings.appliedTitle")
+                  : t("choice.settings.title")}
               </h2>
               <p className="text-sm text-ink-muted">
-                {free
-                  ? t("choice.settings.picked", {
-                      name: orgName(free),
-                      day: formatCutoverDay(choice.cutoverAt, i18n.language),
-                    })
-                  : t("choice.settings.pending", {
-                      date: formatCutoverDate(choice.cutoverAt, i18n.language),
-                    })}
+                {applied
+                  ? t("choice.settings.applied", applied)
+                  : free
+                    ? t("choice.settings.picked", {
+                        name: orgName(free),
+                        day: formatCutoverDay(choice.cutoverAt, i18n.language),
+                      })
+                    : t("choice.settings.pending", {
+                        date: formatCutoverDate(
+                          choice.cutoverAt,
+                          i18n.language,
+                        ),
+                      })}
               </p>
             </div>
             <Button

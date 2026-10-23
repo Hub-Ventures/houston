@@ -3,10 +3,11 @@ import type {
   BillingChoicePick,
   BillingChoiceSave,
 } from "@houston/engine-adapter";
-import { canChangeChoice } from "@houston/sdk";
+import { canChangeChoice, saveSettlesNotice } from "@houston/sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { reportError } from "../../lib/error-report";
 import { showExpectedStateToast } from "../../lib/error-toast";
 import { hasSpaces } from "../../lib/org-roles";
 import { queryKeys } from "../../lib/query-keys";
@@ -56,15 +57,32 @@ type Cached = BillingChoice | null | undefined;
 /**
  * Save the pick. A refusal the person can act on shows its own copy and
  * resolves with the outcome; anything else is reported by the engine call.
+ * After the cutover a stored pick moves the subscription and the lock dates,
+ * so every org's billing is read again, and it settles the notice
+ * ({@link saveSettlesNotice}) from whichever screen saved it, even one closed
+ * before the answer landed.
  */
 export function useSetBillingChoice() {
   const client = useQueryClient();
+  const dismiss = useDismissBillingChoice();
   const { t } = useTranslation("plan");
   return useMutation({
     mutationFn: (pick: BillingChoicePick) => tauriOrg.setBillingChoice(pick),
     onSuccess: async (outcome: BillingChoiceSave) => {
       if (outcome.kind === "saved") {
         client.setQueryData(queryKeys.billingChoice(), outcome.choice);
+        if (saveSettlesNotice(outcome)) dismiss.mutate();
+        // Not awaited: a slow reread must never hold the stored pick's success step.
+        Promise.all([
+          client.invalidateQueries({ queryKey: queryKeys.orgs() }),
+          client.invalidateQueries({ queryKey: queryKeys.billingAll() }),
+        ]).catch((error: unknown) =>
+          reportError(
+            "billing_choice_refresh",
+            "Could not reread org billing after a pick",
+            error,
+          ),
+        );
         return;
       }
       showExpectedStateToast(

@@ -1,4 +1,5 @@
 import type { BillingChoiceOrg } from "@houston/engine-adapter";
+import type { FlowProgress } from "@houston/sdk";
 import { cn } from "@houston-ai/core";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +9,19 @@ import { OrgAvatar } from "./org-avatar";
 export function useOrgName(): (org: BillingChoiceOrg) => string {
   const { t } = useTranslation("plan");
   return (org) => (org.personal ? t("choice.picker.personal") : org.name);
+}
+
+/** An org's members and its last 30 days of messages, as the picker lists them. */
+export function useOrgMeta(): (org: BillingChoiceOrg) => string {
+  const { t } = useTranslation("plan");
+  return (org) =>
+    t("choice.picker.meta", {
+      first: t("choice.picker.members", { count: org.memberCount }),
+      second:
+        org.messages30d > 0
+          ? t("choice.picker.messages", { count: org.messages30d })
+          : t("choice.picker.noMessages"),
+    });
 }
 
 export interface OrgRadioProps {
@@ -80,22 +94,33 @@ export function RowTag({ label }: { label: string }) {
   );
 }
 
-/** A payer's two steps: the active one wider and in ink. */
-export function PickerProgress({ step }: { step: 1 | 2 }) {
+/**
+ * Where a page sits in its flow, one dot per page: the current one wider and
+ * in ink.
+ */
+export function PickerProgress({
+  progress,
+}: {
+  progress: FlowProgress | null;
+}) {
   const { t } = useTranslation("plan");
+  if (!progress) return null;
+  const { current, total } = progress;
   return (
     <div className="mb-4 flex gap-1.5">
-      {[1, 2].map((one) => (
+      {Array.from({ length: total }, (_, index) => index + 1).map((one) => (
         <span
           key={one}
           aria-hidden
           className={cn(
             "h-1 w-6 rounded-full bg-line",
-            one === step && "w-9 bg-ink",
+            one === current && "w-9 bg-ink",
           )}
         />
       ))}
-      <span className="sr-only">{t("choice.picker.step", { step })}</span>
+      <span className="sr-only">
+        {t("choice.picker.step", { step: current, total })}
+      </span>
     </div>
   );
 }

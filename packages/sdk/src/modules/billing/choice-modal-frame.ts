@@ -1,25 +1,33 @@
 import type { BillingChoiceSave } from "./choice";
 import { type ChoiceDone, choiceDone } from "./choice-done";
+import {
+  type ChoiceIntroPage,
+  choiceIntroPages,
+  leadsToPicker,
+} from "./choice-flow";
 import type {
   AnnouncedChoice,
   ChoiceModal,
   ShownChoiceModal,
 } from "./choice-modal";
+import type { PickerState } from "./choice-picker";
 
 /**
- * Which step the modal's frame shows: the intro, the picker (only ever while
- * the notice is `pick`), or the success step after a stored pick.
+ * Which step the modal's frame shows: one of the notice's intro pages
+ * ({@link choiceIntroPages}), the picker (only ever while the notice is
+ * `pick` or `confirm`), or the success step after a stored pick.
  */
 export type ChoiceModalPhase =
-  | { step: "intro" }
+  | { step: "intro"; page: ChoiceIntroPage }
   | { step: "picking" }
   | { step: "done"; done: ChoiceDone };
 
 /**
  * What keeps the frame's step past the modal. `none`: the frame follows the
- * modal. `until_answer`: the modal closed under an open picker, as the stored
- * pick's cache write does before or after the save's own answer lands; the
- * picker stays until {@link finishPicking} or a close settles it.
+ * modal. `until_answer`: the modal closed under an open picker, or a `confirm`
+ * notice turned `applied` under the frame, as the stored pick's cache write
+ * does before or after the save's own answer lands; the step stays until
+ * {@link finishPicking}, {@link finishConfirming} or a close settles it.
  * `behind_dialog`: a plan dialog hides the success step, which shows again
  * once that dialog is gone.
  */
@@ -28,29 +36,34 @@ export type ChoiceFrameHold = "none" | "until_answer" | "behind_dialog";
 /**
  * What the pricing-change modal's frame shows, carried from one render to the
  * next. `shown` is the last open modal: it keeps the frame's content through
- * the close animation, after the notice itself has gone.
+ * the close animation, after the notice itself has gone. `pick` is the
+ * picker's draft, kept while the person steps back into the intro and out
+ * again, null until they change it ({@link choiceFramePick}).
  */
 export interface ChoiceModalFrame {
   open: boolean;
   shown: ShownChoiceModal | null;
   phase: ChoiceModalPhase;
   hold: ChoiceFrameHold;
+  pick: PickerState | null;
 }
 
-const INTRO: ChoiceModalPhase = { step: "intro" };
+const INTRO: ChoiceModalPhase = { step: "intro", page: "notice" };
 
 export const CLOSED_CHOICE_FRAME: ChoiceModalFrame = {
   open: false,
   shown: null,
   phase: INTRO,
   hold: "none",
+  pick: null,
 };
 
 /**
- * The frame for the latest {@link ChoiceModal}. It reopens on the intro, so a
- * modal hidden behind a plan dialog comes back where it started; a notice that
- * stops being a pick (a refusal's refetch shows the person cannot pick) drops
- * the picker. A modal that closes for any other reason than a plan dialog
+ * The frame for the latest {@link ChoiceModal}. It reopens on the first intro
+ * page, so a modal hidden behind a plan dialog comes back where it started; a
+ * notice that stops being a pick (a refusal's refetch shows the person cannot
+ * pick) drops the picker, and any intro page it no longer has, back to the
+ * first page. A modal that closes for any other reason than a plan dialog
  * leaves an open picker open (`until_answer`). An open success step ignores
  * the modal, which a stored pick closes, except to step aside for a plan
  * dialog; only the person closes it ({@link closeChoiceFrame}). Answers
@@ -71,24 +84,41 @@ export function nextChoiceModalFrame(
         : { ...frame, hold: "until_answer" };
     return { ...frame, open: false, hold: "none" };
   }
-  const picking =
+  // A stored change or confirmation can turn `confirm` into `applied` before
+  // the save's own answer lands; the frame waits for that answer
+  // ({@link finishPicking}, {@link finishConfirming}) as if the modal closed,
+  // so the read-only note never flashes in its place.
+  if (
     frame.open &&
-    frame.phase.step === "picking" &&
-    modal.notice.kind === "pick";
+    frame.shown?.notice.kind === "confirm" &&
+    modal.notice.kind === "applied"
+  )
+    return frame.hold === "until_answer"
+      ? frame
+      : { ...frame, hold: "until_answer" };
+  const phase = frame.open ? carried(frame.phase, modal.notice) : INTRO;
   const unchanged =
     frame.open &&
     frame.hold === "none" &&
-    picking === (frame.phase.step === "picking") &&
+    phase === frame.phase &&
     frame.shown !== null &&
     frame.shown.close === modal.close &&
     sameNotice(frame.shown.notice, modal.notice);
   if (unchanged) return frame;
-  return {
-    open: true,
-    shown: modal,
-    phase: picking ? frame.phase : INTRO,
-    hold: "none",
-  };
+  // Only a fresh open drops the draft.
+  const pick = frame.open ? frame.pick : null;
+  return { open: true, shown: modal, phase, hold: "none", pick };
+}
+
+/** An open frame's phase under a changed notice: kept while the notice still has it. */
+function carried(
+  phase: ChoiceModalPhase,
+  notice: AnnouncedChoice,
+): ChoiceModalPhase {
+  if (phase.step === "picking") return leadsToPicker(notice) ? phase : INTRO;
+  if (phase.step === "intro" && choiceIntroPages(notice).includes(phase.page))
+    return phase;
+  return INTRO;
 }
 
 /** A success step the person has not closed: it only steps aside. */
@@ -102,15 +132,32 @@ function doneFrame(
   return behind ? frame : { ...frame, open: true, hold: "none" };
 }
 
-/** The frame once the person asks to pick; unchanged unless a pick is open. */
-export function startPicking(frame: ChoiceModalFrame): ChoiceModalFrame {
+/**
+ * The frame after Confirm on a `confirm` intro answers, and whether the modal
+ * is now closed for the session (`closed`). A stored pick closes the frame; a
+ * refusal keeps it, which shows the refusal's own copy. The save itself
+ * settles the notice on the server ({@link saveSettlesNotice}).
+ */
+export function finishConfirming(
+  frame: ChoiceModalFrame,
+  outcome: BillingChoiceSave,
+): { frame: ChoiceModalFrame; closed: boolean } {
   if (
+    outcome.kind !== "saved" ||
     !frame.open ||
-    frame.phase.step !== "intro" ||
-    frame.shown?.notice.kind !== "pick"
+    frame.shown?.notice.kind !== "confirm"
   )
-    return frame;
-  return { ...frame, phase: { step: "picking" } };
+    return { frame, closed: false };
+  return { frame: closeChoiceFrame(frame), closed: true };
+}
+
+/**
+ * Whether closing the frame stores the dismissal on the server: only a
+ * read-only notice (`everywhere`). A stored pick after the cutover settled its
+ * own notice when it saved ({@link saveSettlesNotice}).
+ */
+export function closeDismisses(frame: ChoiceModalFrame): boolean {
+  return frame.shown?.close === "everywhere";
 }
 
 /**
