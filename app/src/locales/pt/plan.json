@@ -48,10 +48,10 @@
   "sidebar": {
     "free": "Nível gratuito",
     "nearLimit": "{{percent}}% usado",
-    "limit": "Limite atingido",
+    "limit": "No limite",
     "upgrade": "Fazer upgrade",
     "label": "Fazer upgrade. {{status}}",
-    "askOwner": "Fale com o proprietário",
+    "askOwner": "Peça ao proprietário",
     "askOwnerLabel": "{{status}}. Peça ao proprietário para fazer upgrade."
   },
   "managedOnWeb": "Seu plano é gerenciado na web, em gethouston.ai.",
@@ -85,11 +85,14 @@
       },
       "rest": {
         "title": "As outras custam {{price}} por membro por mês",
-        "body": "Só para as organizações que você quer que continuem funcionando."
+        "body": "Só para as organizações que você quer que continuem funcionando.",
+        "bodyYearly": "Ou {{price}} por membro por mês, cobrado uma vez por ano. Só para as organizações que você quer que continuem funcionando.",
+        "titleNoPrice": "As outras precisam do nível pago"
       },
       "covers": {
         "title": "Sua assinatura cobre uma organização",
-        "body": "{{price}} por membro por mês. Você escolhe qual daqui a pouco."
+        "body": "{{price}} por membro por mês. Você escolhe qual daqui a pouco.",
+        "bodyNoPrice": "Você escolhe qual daqui a pouco."
       },
       "staysFree": "{{name}} continua no nível gratuito",
       "paysFor": "Sua assinatura paga por {{name}}",

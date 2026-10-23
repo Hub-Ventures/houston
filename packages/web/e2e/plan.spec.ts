@@ -64,7 +64,7 @@ test("Admin > Billing on a free org: the share of the week and Upgrade", async (
   await expect(
     billing.getByRole("progressbar", { name: "25% used" }),
   ).toBeVisible();
-  await expect(billing.getByText("$15 a month for 1 member")).toBeVisible();
+  await expect(billing.getByText("$180 a year for 1 member")).toBeVisible();
   await expect(billing.getByRole("button", { name: "Upgrade" })).toBeEnabled();
   // The pool is a share of the week, never a message count.
   await expect(billing).not.toContainText(/\b10\b|\b40\b|messages/);
@@ -82,7 +82,7 @@ test("Admin > Billing on a paid org: seats, the total and Manage billing", async
   const billing = await openOrgBilling(page);
 
   await expect(
-    billing.getByRole("heading", { name: "Paid plan" }),
+    billing.getByRole("heading", { name: "Paid tier" }),
   ).toBeVisible();
   await expect(billing.getByText("1 seat, $15 a month")).toBeVisible();
   await expect(billing.getByTestId("billing-usage")).toHaveCount(0);
