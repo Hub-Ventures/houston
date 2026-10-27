@@ -18,11 +18,11 @@
  * itself and no surface is handed a silent empty answer it did not ask for.
  */
 
+import type { SeatQuote } from "@houston/wire-types";
 import type { ModuleContext } from "../../module-context";
 import { moduleScope } from "../http";
 import { requireString, requireStrings } from "../payload";
 import {
-  addOrgMember,
   deleteOrgInvite,
   getOrg,
   getOrgPeople,
@@ -32,8 +32,8 @@ import {
   setOrgMemberRole,
 } from "./http";
 import { listMemberRoutines, type MemberRoutines } from "./member-routines";
+import { type AddOrgMemberOutcome, addOrgMember, quoteSeat } from "./seat-add";
 import {
-  type AddOrgMemberResult,
   OrgCommand,
   type OrgInfo,
   type OrgPerson,
@@ -52,12 +52,30 @@ import {
   type UsageRow,
 } from "./usage";
 
+export type { ChargeSeatQuote, SeatQuote } from "@houston/wire-types";
 export { OrgHttpError } from "./http";
 export type {
   MemberRoutine,
   MemberRoutineKind,
   MemberRoutines,
 } from "./member-routines";
+export {
+  type AddOrgMemberOutcome,
+  seatAddRefusal,
+} from "./seat-add";
+export {
+  type SeatAddedNote,
+  type SeatAddStep,
+  type SeatChargeView,
+  type SeatNote,
+  type SeatRemoveNote,
+  seatAddBlocked,
+  seatAddedNote,
+  seatAddStep,
+  seatChargeView,
+  seatNote,
+  seatRemoveNote,
+} from "./seat-view";
 export type {
   AddOrgMemberResult,
   OrgInfo,
@@ -84,8 +102,19 @@ export interface OrgModule {
   getOrgProfiles(ids: string[]): Promise<UserProfilesResult>;
   /** The sanitized co-member directory of the active space. */
   getOrgPeople(): Promise<OrgPerson[]>;
-  /** Add someone by email, or create a pending invite when they are not a user yet. */
-  addOrgMember(email: string, role: OrgRole): Promise<AddOrgMemberResult>;
+  /** What adding one more person costs; ask before every add. */
+  quoteSeat(): Promise<SeatQuote>;
+  /**
+   * Add someone by email, or create a pending invite when they are not a user
+   * yet. `prorationDate` and `quotedAmountCents` are the `charge` quote's,
+   * when the add pays a seat.
+   */
+  addOrgMember(
+    email: string,
+    role: OrgRole,
+    prorationDate?: number,
+    quotedAmountCents?: number,
+  ): Promise<AddOrgMemberOutcome>;
   /** Cancel a pending invitation by id. */
   deleteOrgInvite(inviteId: string): Promise<void>;
   /** Remove a member from the active space by user id. */
@@ -110,8 +139,15 @@ export function createOrgModule(ctx: ModuleContext): OrgModule {
     getOrgProfiles(scope, requireStrings(p, "ids")),
   );
   ctx.registerCommand(OrgCommand.GetPeople, () => getOrgPeople(scope));
+  ctx.registerCommand(OrgCommand.QuoteSeat, () => quoteSeat(scope));
   ctx.registerCommand(OrgCommand.AddMember, (p) =>
-    addOrgMember(scope, requireString(p, "email"), requireRole(p, "role")),
+    addOrgMember(
+      scope,
+      requireString(p, "email"),
+      requireRole(p, "role"),
+      optionalNumber(p, "prorationDate"),
+      optionalNumber(p, "quotedAmountCents"),
+    ),
   );
   ctx.registerCommand(OrgCommand.DeleteInvite, (p) =>
     deleteOrgInvite(scope, requireString(p, "inviteId")),
@@ -139,7 +175,9 @@ export function createOrgModule(ctx: ModuleContext): OrgModule {
     getOrg: () => getOrg(scope),
     getOrgProfiles: (ids) => getOrgProfiles(scope, ids),
     getOrgPeople: () => getOrgPeople(scope),
-    addOrgMember: (email, role) => addOrgMember(scope, email, role),
+    quoteSeat: () => quoteSeat(scope),
+    addOrgMember: (email, role, prorationDate, quotedAmountCents) =>
+      addOrgMember(scope, email, role, prorationDate, quotedAmountCents),
     deleteOrgInvite: (inviteId) => deleteOrgInvite(scope, inviteId),
     removeOrgMember: (userId) => removeOrgMember(scope, userId),
     listMemberRoutines: (userId) => listMemberRoutines(scope, userId),

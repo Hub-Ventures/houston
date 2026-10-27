@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseOrgBilling, readCreatedOrg, readOrgsList } from "./org-billing";
+import { parseOrgBilling, readOrgsList } from "./org-billing";
+import { readCreatedOrg } from "./org-create";
 
 const BILLING = {
   tier: "free",
@@ -15,6 +16,8 @@ const BILLING = {
   seatGraceEndsAt: null,
   renewsAt: null,
   priceNotice: null,
+  paidSeats: null,
+  seatsInUse: null,
   usage: {
     scope: "org",
     used: 12,

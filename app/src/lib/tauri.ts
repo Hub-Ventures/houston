@@ -1889,14 +1889,26 @@ export const tauriOrg = {
       toast: false,
       capture: false,
     }),
+  /** What adding one more person costs (owner); the seat flow asks before
+   *  every add. A gateway without the route answers `no_charge`. */
+  quoteSeat: () => call("quote_org_seat", () => getEngine().quoteSeat()),
+  /** Add or invite someone. `charge` is the `charge` quote's date and amount
+   *  when the add pays a seat; the seat refusals come back as outcomes. */
   addMember: (
     email: string,
     role: import("@houston/engine-adapter").OrgRole,
     options?: EngineCallOptions,
+    charge?: { prorationDate: number; quotedAmountCents: number },
   ) =>
     call(
       "add_org_member",
-      () => getEngine().addOrgMember(email, role),
+      () =>
+        getEngine().addOrgMember(
+          email,
+          role,
+          charge?.prorationDate,
+          charge?.quotedAmountCents,
+        ),
       undefined,
       options,
     ),
