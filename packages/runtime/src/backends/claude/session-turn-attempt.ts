@@ -1,4 +1,8 @@
 import type { Options } from "@anthropic-ai/claude-agent-sdk";
+import {
+  claudeStartupProfileEnv,
+  collectClaudeStartupProfile,
+} from "../../turn/turn-claude-startup";
 import { markTurnOnce } from "../../turn/turn-network-marks";
 import { toSdkEffort } from "./effort";
 import { classifyText } from "./errors";
@@ -63,7 +67,7 @@ export async function runTurnAttempt(
     ...state.deps.baseOptions,
     // The per-turn env OVERRIDES the build-time one in baseOptions, so this
     // spawn carries the currently stored credential (PRODUCT-1355).
-    env,
+    env: { ...env, ...claudeStartupProfileEnv() },
     model: state.model,
     abortController,
     ...(resume ? { resume } : {}),
@@ -82,6 +86,8 @@ export async function runTurnAttempt(
   // after yielding an error `result` — is not reported a SECOND time.
   let providerErrored = false;
   let succeeded = false;
+  // The CLI exited on its own, so its startup report is complete on disk.
+  let streamEnded = false;
   const danglingResume = (message: string): boolean =>
     resume !== undefined && DANGLING_RESUME_RE.test(message);
   const timer = createClaudeCallTimer();
@@ -140,6 +146,7 @@ export async function runTurnAttempt(
       }
       if (beat) state.emitReplyBeat(beat); // after the frames it follows
     }
+    streamEnded = !state.isAborting();
   } catch (err) {
     // The user's Stop aborts the controller, which makes the SDK iterator
     // throw (any shape). Swallow it — cancelTurn already surfaced the stop, so
@@ -169,6 +176,7 @@ export async function runTurnAttempt(
         state.deps.conversationId,
         capturedSessionId,
       );
+    if (streamEnded) collectClaudeStartupProfile(env.CLAUDE_CONFIG_DIR);
   }
   return succeeded && !providerErrored && !abortController.signal.aborted
     ? "success"
