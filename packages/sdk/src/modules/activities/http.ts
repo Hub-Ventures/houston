@@ -1,27 +1,15 @@
 /**
- * The per-agent activities REST calls, over the injected `fetch`.
- *
- * The runtime client (`@houston/runtime-client`) is scoped to one conversation
- * and serves no typed `.houston` surface, so this module talks to the HOST's
- * `/agents/:id/activities` routes directly through `ports.fetch` — the SAME
- * routes `engine-adapter/control-plane.ts` uses. Auth rides the injected
- * `fetch` (the host wires a bearer-attaching `fetch`), exactly as the agents
- * module does.
- *
- * Errors never get swallowed: a non-2xx throws an {@link ActivitiesHttpError}
- * carrying the HTTP `status`, which `CommandRegistry.dispatch` surfaces as an
- * `ok: false` result. A `401` additionally fires {@link onUnauthorized} so a
- * lapsed session token becomes a visible `tokenExpired` signal. Create and
- * update first re-issue a busy or waking refusal (`./busy-retry.ts`).
- *
- * Assistant catalog: the `@assistant` blocks below are the single source of
- * truth for the board operations they sit on. The board's other two
- * declarations live with the calls they describe — the rename in
- * `./mission-rename.ts` and the search in `../missions-search/index.ts` — so a
- * board operation is annotated once, where it is written.
+ * The runtime client is scoped to conversations, so board writes use host
+ * routes. The stamped writer is public through ActivitiesWrites.update, but
+ * stays out of the AI Manager catalog defined by named @assistant functions.
  */
 
-import type { Activity, ActivityUpdate, NewActivity } from "@houston/protocol";
+import type {
+  Activity,
+  ActivityStamp,
+  ActivityUpdate,
+  NewActivity,
+} from "@houston/protocol";
 import {
   type HttpScope,
   httpRequest,
@@ -51,12 +39,14 @@ export interface ActivitiesHttp {
     agentId: string,
     id: string,
     update: ActivityUpdate,
+    stamp?: ActivityStamp,
   ): Promise<Activity>;
   remove(agentId: string, id: string): Promise<void>;
 }
 
 /**
- * Lists the missions on an agent's board.
+ * Lists the missions on an agent's board, including last_message_at when
+ * the last user or agent message time is recorded.
  * @param agentId The agent this acts on, by the id listAgents returns. An
  *   agent's name is not its id, so read the id from listAgents first.
  * @assistant group:missions
@@ -153,6 +143,23 @@ export async function deleteActivity(
   );
 }
 
+// A turn's writer is private: generic catalog edits cannot stamp message time.
+async function stampActivityMessage(
+  scope: HttpScope,
+  agentId: string,
+  id: string,
+  updates: ActivityUpdate,
+): Promise<Activity> {
+  const res = await retryWriteWhileRefused(scope.ports.clock, () =>
+    httpRequest(
+      scope,
+      `/agents/${encodeURIComponent(agentId)}/activities/${encodeURIComponent(id)}?stamp=last_message`,
+      { method: "PATCH", body: JSON.stringify(updates) },
+    ),
+  );
+  return (await res.json()) as Activity;
+}
+
 export function createActivitiesHttp(ctx: ScopeContext): ActivitiesHttp {
   const scope = moduleScope(ctx, "activities", ActivitiesHttpError);
 
@@ -160,7 +167,10 @@ export function createActivitiesHttp(ctx: ScopeContext): ActivitiesHttp {
     list: (agentId) => listActivities(scope, agentId),
     create: (agentId, input, opts) =>
       createActivity(scope, agentId, input, opts),
-    update: (agentId, id, update) => updateActivity(scope, agentId, id, update),
+    update: (agentId, id, update, stamp) =>
+      stamp === undefined
+        ? updateActivity(scope, agentId, id, update)
+        : stampActivityMessage(scope, agentId, id, update),
     remove: (agentId, id) => deleteActivity(scope, agentId, id),
   };
 }
@@ -174,7 +184,8 @@ export function createActivitiesHttp(ctx: ScopeContext): ActivitiesHttp {
 export function createActivitiesWrites(http: ActivitiesHttp): ActivitiesWrites {
   return {
     create: (agentId, input, opts) => http.create(agentId, input, opts),
-    update: (agentId, id, updates) => http.update(agentId, id, updates),
+    update: (agentId, id, updates, stamp) =>
+      http.update(agentId, id, updates, stamp),
     setStatus: (agentId, id, status) => http.update(agentId, id, { status }),
     rename: (agentId, id, title) => http.update(agentId, id, { title }),
     delete: (agentId, id) => http.remove(agentId, id),

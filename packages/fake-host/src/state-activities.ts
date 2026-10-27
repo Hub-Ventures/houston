@@ -6,6 +6,7 @@
 import { addressesMission } from "@houston/domain/conversation-keys";
 import {
   type Activity,
+  type ActivityStamp,
   type ActivityUpdate,
   isMissionStarter,
   resolveInteractionPatch,
@@ -68,12 +69,15 @@ export function updateActivity(
   agentId: string,
   id: string,
   updates: ActivityUpdate,
+  stamp?: ActivityStamp,
 ): Activity | null {
   const items = listActivities(agentId);
   const activity = items.find((a) => a.id === id);
   if (!activity) return null;
   const { pending_interaction, ...rest } = updates;
+  activity.last_message_at ??= activity.updated_at ?? ISO;
   Object.assign(activity, rest, { updated_at: ISO });
+  if (stamp === "last_message") activity.last_message_at = ISO;
   // Same rule as the real host (`applyActivityUpdate` in @houston/domain),
   // resolved through the one shared helper: `null` DELETES the key (never store
   // null, or a later read fails the shape guard), a valid object records it, and
@@ -104,6 +108,7 @@ export function clearActivityInteraction(
   const activity = items.find((a) => addressesMission(a, sessionKey));
   if (!activity?.pending_interaction) return;
   delete activity.pending_interaction;
+  activity.last_message_at ??= activity.updated_at ?? ISO;
   activity.updated_at = ISO;
   setActivities(agentId, items);
 }
